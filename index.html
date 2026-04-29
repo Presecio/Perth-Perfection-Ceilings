@@ -770,66 +770,150 @@ function submitForm(e) {
 
 <script>
 (function() {
-  const SYSTEM_PROMPT = `You are the friendly virtual assistant for Perth Perfection Ceilings, a premium plastering company based in Perth, Western Australia, run by Joey Huseyin.
 
-BUSINESS DETAILS:
-- Business name: Perth Perfection Ceilings
-- Owner: Joey Huseyin
-- Phone: 0400 415 321
-- Location: Perth, WA — all suburbs
-- Hours: Monday–Saturday, 7am–5pm
-- Instagram: @perthperfectionceilings
-- Tagline: "High End Ceilings — We Do It All"
-
-SERVICES (all include free quotes):
-1. Residential Plastering — new builds, renovations, repairs
-2. Commercial Projects — offices, retail, warehouses, large-scale
-3. Insurance Repairs — storm, water, and impact damage; works with insurers
-4. High End Ceilings — ornate cornices, coffered ceilings, bulkheads, feature details
-5. Plasterboard Supply & Fix — full supply and installation, taping, setting, finishing
-6. Patching & Repairs — cracks, holes, water damage, seamless blending
-
-PRICING & QUOTES:
-- All quotes are 100% free and no obligation
-- Pricing depends on job size, materials, and complexity — Joey will assess on-site
-- For a ballpark: small patches from ~$150–$300, full room replasters vary widely
-- Best to call or fill in the quote form for accurate pricing
-
-FAQs:
-Q: How do I get a quote? A: Call Joey on 0400 415 321 or fill in the free quote form at the bottom of this page. He'll get back to you fast.
-Q: Do you do insurance work? A: Yes — we specialise in insurance repairs and work directly with insurers.
-Q: What areas do you cover? A: All Perth suburbs — north, south, east, west.
-Q: How long does plastering take? A: Small repairs can be done in a day. Full rooms or larger jobs typically take 2–5 days depending on drying time and complexity.
-Q: Are you licensed? A: Yes, fully licensed and insured.
-Q: Do you do commercial work? A: Yes, offices, retail fit-outs, warehouses, and more.
-Q: What's the difference between plastering and rendering? A: Plastering is for interior walls/ceilings. Rendering is an exterior finish — we primarily focus on interior plastering and ceilings.
-Q: Can you match existing plaster? A: Yes — seamless matching is a specialty of ours.
-Q: Do you supply materials? A: Yes, we supply and fix plasterboard and all associated materials.
-Q: How do I see your work? A: Check the gallery on this page or follow @perthperfectionceilings on Instagram.
-Q: How do I contact you? A: Call or text Joey on 0400 415 321, or use the free quote form on this website.
-
-TONE: Be warm, helpful, and concise. You're representing a local Perth tradie business — be friendly and straightforward, not corporate. Keep answers brief (2–4 sentences max unless the question requires more). Always end with a helpful next step (e.g. "Want me to help you get a free quote?" or "Feel free to ask anything else!"). Never make up prices or details not listed above. If unsure, direct them to call Joey directly.`;
-
-  const msgs = [];
-  let open = false;
-  let greeted = false;
-
-  const QUICK = [
-    "How do I get a quote?",
-    "What services do you offer?",
-    "Do you cover my suburb?",
-    "Do you do insurance work?",
-    "How much does it cost?",
+  // ── KNOWLEDGE BASE ────────────────────────────────────────────────
+  // Each entry: { patterns: [keywords/phrases], response, followUps }
+  const KB = [
+    {
+      patterns: ['quote','price','cost','how much','pricing','estimate','charge','fee','rate'],
+      response: "All quotes are 100% free and no obligation! 🎉 Pricing depends on the size and complexity of your job — small patches start from around $150–$300, but larger jobs like full room replasters vary a lot.\n\nThe best way to get an accurate price is to fill in the quote form below or call Joey directly on <a href='tel:0400415321' style='color:var(--blue);font-weight:700'>0400 415 321</a>. He'll come out and give you a fair, transparent quote.",
+      followUps: ["How do I book?","What services do you offer?","Do you cover my area?"]
+    },
+    {
+      patterns: ['book','booking','appointment','schedule','when can','availability','available'],
+      response: "Easy! Just call or text Joey on <a href='tel:0400415321' style='color:var(--blue);font-weight:700'>0400 415 321</a> (Mon–Sat, 7am–5pm) or scroll down to fill in the free quote form — he'll get back to you quickly to lock in a time that suits. 📅",
+      followUps: ["What are your hours?","How much does it cost?","What services do you offer?"]
+    },
+    {
+      patterns: ['hour','open','time','when','monday','tuesday','wednesday','thursday','friday','saturday','sunday','weekend'],
+      response: "Joey and the team are available Monday to Saturday, 7am–5pm. 🕖\n\nFor urgent jobs or after-hours enquiries, feel free to send a text to <a href='tel:0400415321' style='color:var(--blue);font-weight:700'>0400 415 321</a> and Joey will get back to you as soon as he can.",
+      followUps: ["How do I get a quote?","What areas do you cover?"]
+    },
+    {
+      patterns: ['area','suburb','location','cover','where','perth','north','south','east','west','travel'],
+      response: "We cover all Perth suburbs — north, south, east, and west! 📍 Whether you're in the CBD, coastal suburbs, or outer metro areas, we come to you.\n\nNot sure if we cover your suburb? Just ask or call Joey on <a href='tel:0400415321' style='color:var(--blue);font-weight:700'>0400 415 321</a>.",
+      followUps: ["How do I get a quote?","What services do you offer?"]
+    },
+    {
+      patterns: ['insurance','insur','claim','damage','storm','flood','water damage','leak'],
+      response: "Yes, insurance work is one of our specialties! 🛡️ Whether it's storm, water, or impact damage, we work directly with insurers to get your property restored fast and properly.\n\nWe handle the complexity of the repair side so you don't have to stress. Just give Joey a call on <a href='tel:0400415321' style='color:var(--blue);font-weight:700'>0400 415 321</a> and he'll walk you through the process.",
+      followUps: ["How do I get a quote?","How long does a job take?"]
+    },
+    {
+      patterns: ['residential','home','house','bedroom','living','room','apartment','unit','renovation','reno'],
+      response: "Absolutely — residential work is our bread and butter! 🏠 We handle everything from small repairs in a single room to full replasters across entire homes, new builds, and renovations.\n\nGet a free quote by calling Joey on <a href='tel:0400415321' style='color:var(--blue);font-weight:700'>0400 415 321</a> or using the quote form on this page.",
+      followUps: ["How much does it cost?","How long does a job take?","Do you do ceilings?"]
+    },
+    {
+      patterns: ['commercial','office','shop','retail','warehouse','business','fit out','fitout','cafe','restaurant'],
+      response: "Yes, we take on commercial projects of all sizes! 🏢 Offices, retail fit-outs, cafes, warehouses, and large-scale developments — we deliver on time and on budget.\n\nFor commercial enquiries, call Joey on <a href='tel:0400415321' style='color:var(--blue);font-weight:700'>0400 415 321</a> to discuss your project.",
+      followUps: ["How do I get a quote?","What areas do you cover?"]
+    },
+    {
+      patterns: ['ceiling','cornice','bulkhead','coffered','ornate','feature ceiling','high end ceiling'],
+      response: "High end ceilings are our signature! ✨ We specialise in ornate cornices, coffered ceilings, bulkheads, and custom feature details that completely transform a space.\n\nCheck out our gallery on this page to see some examples, or follow us on Instagram <a href='https://instagram.com/perthperfectionceilings' target='_blank' style='color:var(--blue);font-weight:700'>@perthperfectionceilings</a> for more of our work.",
+      followUps: ["How do I get a quote?","How much does it cost?","See your gallery"]
+    },
+    {
+      patterns: ['plasterboard','gyprock','gyproc','supply','fix','install','board'],
+      response: "Yes — we supply and fix plasterboard for walls and ceilings. 🔧 That includes all the associated work: taping, setting, sanding, and a smooth finishing coat ready for paint.\n\nWe take care of materials so you don't have to source anything separately. Get a free quote via the form below or call <a href='tel:0400415321' style='color:var(--blue);font-weight:700'>0400 415 321</a>.",
+      followUps: ["How much does it cost?","How long does a job take?"]
+    },
+    {
+      patterns: ['patch','repair','crack','hole','dent','damage','fix','small job','minor'],
+      response: "No job is too small for us! 🔨 We do seamless patching of cracks, holes, dents, and water-damaged areas — and we're really good at matching existing plaster so the repair blends in invisibly.\n\nCall Joey on <a href='tel:0400415321' style='color:var(--blue);font-weight:700'>0400 415 321</a> for a free quote on your repair.",
+      followUps: ["How much does a repair cost?","How long does it take?","What other services do you offer?"]
+    },
+    {
+      patterns: ['how long','duration','time','days','timeline','turnaround','quick','fast'],
+      response: "It depends on the scope of the job! ⏱️\n\n• Small patches or repairs: usually done in a single day\n• Full room replasters: typically 2–3 days (including drying time)\n• Larger jobs or full houses: 3–7+ days\n\nJoey will give you a realistic timeline when he comes out to quote.",
+      followUps: ["How do I get a quote?","How much does it cost?"]
+    },
+    {
+      patterns: ['licen','insured','qualified','cert','registered','professional','legal'],
+      response: "Absolutely — fully licensed and insured. ✅ You can trust that the work is done properly and professionally, with full protection for you and your property.\n\nAny other questions? Happy to help!",
+      followUps: ["How do I get a quote?","What services do you offer?"]
+    },
+    {
+      patterns: ['match','existing','blend','same','original','colour','color'],
+      response: "Seamless matching is something we take real pride in! 🎨 Whether it's texture, finish, or profile — we work carefully to make repairs and additions blend in with existing plaster so you can't see the join.\n\nGive Joey a call on <a href='tel:0400415321' style='color:var(--blue);font-weight:700'>0400 415 321</a> to discuss your specific situation.",
+      followUps: ["How much does it cost?","How do I get a quote?"]
+    },
+    {
+      patterns: ['render','rendering','external','exterior','outside'],
+      response: "Great question! Plastering and rendering are related but different — plastering is for interior walls and ceilings (that's our specialty), while rendering is an exterior finish applied to outside walls.\n\nWe primarily focus on high-quality interior plastering and ceilings. For exterior rendering, Joey may be able to point you in the right direction — give him a call on <a href='tel:0400415321' style='color:var(--blue);font-weight:700'>0400 415 321</a>.",
+      followUps: ["What services do you offer?","How do I get a quote?"]
+    },
+    {
+      patterns: ['contact','phone','call','text','email','reach','talk','speak','joey'],
+      response: "You can reach Joey directly on 📞 <a href='tel:0400415321' style='color:var(--blue);font-weight:700'>0400 415 321</a> — call or text, Mon–Sat, 7am–5pm.\n\nYou can also fill in the free quote form at the bottom of this page and he'll get back to you fast. Or follow us on Instagram: <a href='https://instagram.com/perthperfectionceilings' target='_blank' style='color:var(--blue);font-weight:700'>@perthperfectionceilings</a> 📸",
+      followUps: ["How do I get a quote?","What are your hours?"]
+    },
+    {
+      patterns: ['instagram','social','insta','follow','post','photo','picture'],
+      response: "Follow us on Instagram at <a href='https://instagram.com/perthperfectionceilings' target='_blank' style='color:var(--blue);font-weight:700'>@perthperfectionceilings</a> 📸 — we post photos of our recent work so you can see the quality up close.\n\nYou can also check out the gallery section right here on this page!",
+      followUps: ["See your gallery","How do I get a quote?"]
+    },
+    {
+      patterns: ['gallery','work','portfolio','example','project','photo','see','look'],
+      response: "You can see our recent work in the gallery section on this page — just scroll up! 📸 We've got photos from a range of residential and commercial jobs.\n\nFor even more, follow us on Instagram: <a href='https://instagram.com/perthperfectionceilings' target='_blank' style='color:var(--blue);font-weight:700'>@perthperfectionceilings</a>",
+      followUps: ["How do I get a quote?","What services do you offer?"]
+    },
+    {
+      patterns: ['service','what do you do','offer','specialise','speciali','provide','type of work'],
+      response: "We offer a full range of plastering services across Perth: 🏗️\n\n• <b>Residential Plastering</b> — homes, renovations, new builds\n• <b>Commercial Projects</b> — offices, retail, warehouses\n• <b>Insurance Repairs</b> — working with your insurer\n• <b>High End Ceilings</b> — cornices, coffered, bulkheads\n• <b>Plasterboard Supply & Fix</b> — supply, install, finish\n• <b>Patching & Repairs</b> — cracks, holes, water damage\n\nAll jobs come with a free quote!",
+      followUps: ["How do I get a quote?","How much does it cost?","What areas do you cover?"]
+    },
+    {
+      patterns: ['hello','hi','hey','g\'day','howdy','sup','yo','hiya','good morning','good afternoon','morning','afternoon'],
+      response: "G'day! 👋 Welcome to Perth Perfection Ceilings. I'm here to answer any questions about our plastering services, pricing, or how to get a free quote.\n\nWhat can I help you with today?",
+      followUps: ["What services do you offer?","How do I get a quote?","How much does it cost?","What areas do you cover?"]
+    },
+    {
+      patterns: ['thank','thanks','cheers','appreciate','great','awesome','perfect','helpful'],
+      response: "No worries at all! 😊 That's what I'm here for. If you think of anything else or want to get a free quote, just ask — or call Joey directly on <a href='tel:0400415321' style='color:var(--blue);font-weight:700'>0400 415 321</a>.",
+      followUps: ["Get a free quote","What services do you offer?"]
+    },
   ];
 
+  const FALLBACK_RESPONSES = [
+    "That's a great question! For anything I'm not sure about, the best person to ask is Joey himself — call or text him on <a href='tel:0400415321' style='color:var(--blue);font-weight:700'>0400 415 321</a> (Mon–Sat, 7am–5pm) and he'll sort you out. 😊",
+    "Hmm, I want to make sure you get the right answer on that one! Joey knows everything about the business — give him a ring on <a href='tel:0400415321' style='color:var(--blue);font-weight:700'>0400 415 321</a> or use the free quote form at the bottom of the page.",
+    "Good question — I'd point you to Joey for that one. You can reach him on <a href='tel:0400415321' style='color:var(--blue);font-weight:700'>0400 415 321</a> or fill in the quote form below and he'll be in touch fast. 👍",
+  ];
+  let fallbackIdx = 0;
+
+  // ── STATE ─────────────────────────────────────────────────────────
+  let open = false;
+  let greeted = false;
+  const INIT_QUICK = ["What services do you offer?","How do I get a quote?","How much does it cost?","Do you do insurance work?","What areas do you cover?"];
+
+  // ── MATCHING ──────────────────────────────────────────────────────
+  function getBotResponse(text) {
+    const q = text.toLowerCase();
+    // score each KB entry
+    let best = null, bestScore = 0;
+    for (const entry of KB) {
+      let score = 0;
+      for (const pat of entry.patterns) {
+        if (q.includes(pat)) score += pat.split(' ').length; // longer phrase = higher score
+      }
+      if (score > bestScore) { bestScore = score; best = entry; }
+    }
+    if (best && bestScore > 0) return best;
+    return null;
+  }
+
+  // ── UI HELPERS ────────────────────────────────────────────────────
   function toggleChat() {
     open = !open;
     document.getElementById('chatWin').classList.toggle('open', open);
-    document.querySelector('.fab-badge').style.display = 'none';
+    const badge = document.querySelector('.fab-badge');
+    if (badge) badge.style.display = 'none';
     if (open && !greeted) {
       greeted = true;
-      setTimeout(() => addBotMsg("G'day! 👋 I'm the Perth Perfection virtual assistant. Ask me anything about our plastering services, pricing, or how to get a free quote — I'm here to help!"), 400);
-      setTimeout(() => showQuickReplies(QUICK), 900);
+      setTimeout(() => addBotMsg("G'day! 👋 I'm the Perth Perfection virtual assistant. Ask me anything about our plastering services, pricing, areas we cover, or how to get a free quote — I'm here to help!"), 350);
+      setTimeout(() => showQuickReplies(INIT_QUICK), 900);
     }
     if (open) setTimeout(() => document.getElementById('chatInput').focus(), 300);
   }
@@ -837,7 +921,7 @@ TONE: Be warm, helpful, and concise. You're representing a local Perth tradie bu
   function showQuickReplies(options) {
     const qr = document.getElementById('quickReplies');
     qr.innerHTML = '';
-    options.forEach(o => {
+    options.slice(0,5).forEach(o => {
       const b = document.createElement('button');
       b.className = 'qr';
       b.textContent = o;
@@ -846,10 +930,10 @@ TONE: Be warm, helpful, and concise. You're representing a local Perth tradie bu
     });
   }
 
-  function addBotMsg(text) {
+  function addBotMsg(html) {
     const el = document.createElement('div');
     el.className = 'msg bot';
-    el.innerHTML = `<div class="msg-avatar">🏠</div><div class="msg-bubble">${text.replace(/\n/g,'<br>')}</div>`;
+    el.innerHTML = `<div class="msg-avatar">🏠</div><div class="msg-bubble">${html.replace(/\n/g,'<br>')}</div>`;
     document.getElementById('chatMsgs').appendChild(el);
     scrollDown();
   }
@@ -864,7 +948,7 @@ TONE: Be warm, helpful, and concise. You're representing a local Perth tradie bu
 
   function showTyping() {
     const el = document.createElement('div');
-    el.className = 'msg bot'; el.id = 'typing';
+    el.className = 'msg bot'; el.id = 'typingIndicator';
     el.innerHTML = `<div class="msg-avatar">🏠</div><div class="typing-dot"><span></span><span></span><span></span></div>`;
     document.getElementById('chatMsgs').appendChild(el);
     scrollDown();
@@ -873,42 +957,36 @@ TONE: Be warm, helpful, and concise. You're representing a local Perth tradie bu
 
   function scrollDown() {
     const m = document.getElementById('chatMsgs');
-    m.scrollTop = m.scrollHeight;
+    setTimeout(() => m.scrollTop = m.scrollHeight, 50);
   }
 
-  async function sendMsg(override) {
+  // ── SEND ──────────────────────────────────────────────────────────
+  function sendMsg(override) {
     const input = document.getElementById('chatInput');
-    const text = (override || input.value).trim();
+    const text = (override !== undefined ? override : input.value).trim();
     if (!text) return;
     input.value = '';
     document.getElementById('quickReplies').innerHTML = '';
     addUserMsg(text);
-    msgs.push({ role: 'user', content: text });
+
+    // fake typing delay for natural feel
     const typingEl = showTyping();
+    const delay = 600 + Math.random() * 500;
 
-    try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          system: SYSTEM_PROMPT,
-          messages: msgs
-        })
-      });
-      const data = await res.json();
+    setTimeout(() => {
       typingEl.remove();
-      const reply = data?.content?.[0]?.text || "Sorry, I had trouble connecting. Please call Joey on 0400 415 321!";
-      msgs.push({ role: 'assistant', content: reply });
-      addBotMsg(reply);
-
-      // contextual quick replies after first real answer
-      if (msgs.length <= 4) showQuickReplies(["Get a free quote", "See our work", "Call Joey now", "Insurance repairs"]);
-    } catch(e) {
-      typingEl.remove();
-      addBotMsg("Oops, connection issue! You can reach Joey directly on 📞 0400 415 321.");
-    }
+      const match = getBotResponse(text);
+      if (match) {
+        addBotMsg(match.response);
+        if (match.followUps && match.followUps.length) {
+          setTimeout(() => showQuickReplies(match.followUps), 300);
+        }
+      } else {
+        addBotMsg(FALLBACK_RESPONSES[fallbackIdx % FALLBACK_RESPONSES.length]);
+        fallbackIdx++;
+        setTimeout(() => showQuickReplies(["What services do you offer?","How do I get a quote?","What areas do you cover?"]), 300);
+      }
+    }, delay);
   }
 
   // Enter key
@@ -916,7 +994,7 @@ TONE: Be warm, helpful, and concise. You're representing a local Perth tradie bu
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
   });
 
-  // expose
+  // expose globals
   window.toggleChat = toggleChat;
   window.sendMsg = sendMsg;
 })();
