@@ -517,16 +517,20 @@ footer a{color:#5b9bd5;text-decoration:none}
     </div>
     <div>
       <form id="qForm" onsubmit="submitForm(event)">
+        <input type="hidden" name="access_key" value="e5145832-7fdf-4d22-bcb2-b1ef200bc0cd">
+        <input type="hidden" name="subject" value="New Free Quote Request — Perth Perfection Ceilings">
+        <input type="hidden" name="from_name" value="Perth Perfection Website">
+        <input type="checkbox" name="botcheck" style="display:none">
         <div class="form-row">
-          <div><label for="fn">First Name</label><input type="text" id="fn" placeholder="Joey" required></div>
-          <div><label for="ln">Last Name</label><input type="text" id="ln" placeholder="Smith" required></div>
+          <div><label for="fn">First Name</label><input type="text" id="fn" name="first_name" placeholder="Joey" required></div>
+          <div><label for="ln">Last Name</label><input type="text" id="ln" name="last_name" placeholder="Smith" required></div>
         </div>
-        <div><label for="ph">Phone Number</label><input type="tel" id="ph" placeholder="04XX XXX XXX" required></div>
-        <div><label for="em">Email</label><input type="email" id="em" placeholder="you@email.com"></div>
-        <div><label for="sub">Suburb</label><input type="text" id="sub" placeholder="e.g. Subiaco" required></div>
+        <div><label for="ph">Phone Number</label><input type="tel" id="ph" name="phone" placeholder="04XX XXX XXX" required></div>
+        <div><label for="em">Email</label><input type="email" id="em" name="email" placeholder="you@email.com"></div>
+        <div><label for="sub">Suburb</label><input type="text" id="sub" name="suburb" placeholder="e.g. Subiaco" required></div>
         <div>
           <label for="svc">Service Needed</label>
-          <select id="svc" required>
+          <select id="svc" name="service" required>
             <option value="" disabled selected>Select a service...</option>
             <option>Residential Plastering</option>
             <option>Commercial Project</option>
@@ -537,8 +541,8 @@ footer a{color:#5b9bd5;text-decoration:none}
             <option>Not Sure – Need Advice</option>
           </select>
         </div>
-        <div><label for="msg">Project Details</label><textarea id="msg" placeholder="Briefly describe the work needed..."></textarea></div>
-        <button type="submit" class="btn-submit">📩 Send My Free Quote Request</button>
+        <div><label for="msg">Project Details</label><textarea id="msg" name="message" placeholder="Briefly describe the work needed..."></textarea></div>
+        <button type="submit" class="btn-submit" id="submitBtn">📩 Send My Free Quote Request</button>
       </form>
       <div class="form-ok" id="formOk">
         <div class="ck">✅</div>
@@ -620,10 +624,35 @@ const obs = new IntersectionObserver(entries => entries.forEach(e => { if(e.isIn
 document.querySelectorAll('.fu').forEach(el => obs.observe(el));
 
 // Form
-function submitForm(e) {
+async function submitForm(e) {
   e.preventDefault();
-  document.getElementById('qForm').style.display = 'none';
-  document.getElementById('formOk').style.display = 'block';
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+
+  const formData = new FormData(e.target);
+  const data = Object.fromEntries(formData);
+
+  try {
+    const res = await fetch('https://api.web3forms.com/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    const json = await res.json();
+    if (json.success) {
+      document.getElementById('qForm').style.display = 'none';
+      document.getElementById('formOk').style.display = 'block';
+    } else {
+      btn.disabled = false;
+      btn.textContent = '📩 Send My Free Quote Request';
+      alert('Something went wrong. Please call Joey on 0400 415 321.');
+    }
+  } catch(err) {
+    btn.disabled = false;
+    btn.textContent = '📩 Send My Free Quote Request';
+    alert('Connection error. Please call Joey on 0400 415 321.');
+  }
 }
 </script>
 
